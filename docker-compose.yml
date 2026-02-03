@@ -1,0 +1,38 @@
+# ==============================================================
+# DJI AG API - Docker Compose
+# ==============================================================
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: djiag-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DJI_EMAIL=${DJI_EMAIL}
+      - DJI_PASSWORD=${DJI_PASSWORD}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - BROWSER_HEADLESS=true
+    volumes:
+      # Persistir sessão do browser
+      - ./browser_profile:/app/browser_profile
+      # Persistir downloads
+      - ./downloads:/app/downloads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Opcional: Reverse Proxy com Traefik
+  # traefik:
+  #   image: traefik:v2.10
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock

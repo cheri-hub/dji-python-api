@@ -1,0 +1,25 @@
+# ==============================================================
+# DJI AG API - Docker Compose (Desenvolvimento)
+# ==============================================================
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: djiag-api-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - DJI_EMAIL=${DJI_EMAIL}
+      - DJI_PASSWORD=${DJI_PASSWORD}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - BROWSER_HEADLESS=false
+    volumes:
+      # Código fonte para hot-reload
+      - ./src:/app/src
+      # Persistir sessão do browser
+      - ./browser_profile:/app/browser_profile
+      # Persistir downloads
+      - ./downloads:/app/downloads
+    command: ["python", "-m", "uvicorn", "src.presentation.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

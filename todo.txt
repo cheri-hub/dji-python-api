@@ -1,0 +1,7 @@
+# Capturar Spray Flow Rate
+# Route Spacing
+# Task Speed
+# Separar pontos em que o Spray Flow Rate > 0
+# Guardar ID
+# Guardar Flight Record Number - R2872572925
+# LineString, sem formação de área
