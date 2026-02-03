@@ -49,8 +49,8 @@ class IBrowserService(ABC):
         pass
     
     @abstractmethod
-    async def login(self, email: str, password: str) -> bool:
-        """Faz login no DJI AG"""
+    async def login(self) -> bool:
+        """Faz login no DJI AG usando credenciais do .env"""
         pass
     
     @abstractmethod

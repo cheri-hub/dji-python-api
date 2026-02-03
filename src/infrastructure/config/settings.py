@@ -5,6 +5,10 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from dotenv import load_dotenv
+
+# Carrega variáveis do .env
+load_dotenv()
 
 # Diretório base do projeto
 BASE_DIR = Path(__file__).parent.parent.parent.parent
@@ -15,7 +19,7 @@ class Settings:
     """Application settings"""
     
     # DJI Credentials
-    dji_email: str = os.getenv("DJI_EMAIL", "")
+    DJI_USERNAME: str = os.getenv("DJI_USERNAME", "")
     dji_password: str = os.getenv("DJI_PASSWORD", "")
     
     # Browser settings

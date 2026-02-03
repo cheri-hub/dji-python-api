@@ -25,7 +25,7 @@ class DjiAgRecordRepository(IRecordRepository):
         self._decoder = ProtobufDecoder()
         self._settings = get_settings()
     
-    def _list_all_in_browser(self, page: "Page", req_page: int = 1, per_page: int = 30) -> List[RecordSummary]:
+    def _list_all_in_browser(self, page: "Page", context, req_page: int = 1, per_page: int = 30) -> List[RecordSummary]:
         """Lista todos os records (executado na thread do Playwright)"""
         # Navegar para records
         page.goto("https://www.djiag.com/br/records", timeout=60000)
@@ -112,15 +112,14 @@ class DjiAgRecordRepository(IRecordRepository):
         return all_records[start:end]
     
     async def list_all(self, page: int = 1, per_page: int = 30) -> List[RecordSummary]:
-        """Lista todos os records com paginação"""
-        return await self._browser.execute_in_browser_async(
+        """Lista todos os records com paginacao"""
+        return await self._browser.execute_in_browser(
             self._list_all_in_browser,
             req_page=page,
-            per_page=per_page,
-            timeout=120
+            per_page=per_page
         )
     
-    def _get_by_id_in_browser(self, page: "Page", record_id: str) -> Optional[Record]:
+    def _get_by_id_in_browser(self, page: "Page", context, record_id: str) -> Optional[Record]:
         """Busca um record pelo ID (executado na thread do Playwright)"""
         api_metadata = {}
         
@@ -178,13 +177,12 @@ class DjiAgRecordRepository(IRecordRepository):
     
     async def get_by_id(self, record_id: str) -> Optional[Record]:
         """Busca um record pelo ID"""
-        return await self._browser.execute_in_browser_async(
+        return await self._browser.execute_in_browser(
             self._get_by_id_in_browser,
-            record_id=record_id,
-            timeout=90
+            record_id=record_id
         )
     
-    def _get_flight_data_in_browser(self, page: "Page", record_id: str) -> Optional[FlightData]:
+    def _get_flight_data_in_browser(self, page: "Page", context, record_id: str) -> Optional[FlightData]:
         """Busca os dados de voo (executado na thread do Playwright)"""
         import logging
         logger = logging.getLogger(__name__)
@@ -237,13 +235,12 @@ class DjiAgRecordRepository(IRecordRepository):
     
     async def get_flight_data(self, record_id: str) -> Optional[FlightData]:
         """Busca os dados de voo de um record"""
-        return await self._browser.execute_in_browser_async(
+        return await self._browser.execute_in_browser(
             self._get_flight_data_in_browser,
-            record_id=record_id,
-            timeout=120
+            record_id=record_id
         )
     
-    def _download_record_in_browser(self, page: "Page", record_id: str) -> Optional[dict]:
+    def _download_record_in_browser(self, page: "Page", context, record_id: str) -> Optional[dict]:
         """Faz download completo de um record (executado na thread do Playwright)"""
         api_metadata = {}
         flight_data_bytes = []
@@ -299,8 +296,7 @@ class DjiAgRecordRepository(IRecordRepository):
     
     async def download_record(self, record_id: str) -> Optional[dict]:
         """Faz download completo de um record"""
-        return await self._browser.execute_in_browser_async(
+        return await self._browser.execute_in_browser(
             self._download_record_in_browser,
-            record_id=record_id,
-            timeout=120
+            record_id=record_id
         )

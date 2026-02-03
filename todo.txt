@@ -1,4 +1,4 @@
-# Capturar Spray Flow Rate
+# Spray Flow Rate
 # Route Spacing
 # Task Speed
 # Separar pontos em que o Spray Flow Rate > 0

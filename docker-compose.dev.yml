@@ -10,7 +10,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DJI_EMAIL=${DJI_EMAIL}
+      - DJI_USERNAME=${DJI_USERNAME}
       - DJI_PASSWORD=${DJI_PASSWORD}
       - API_HOST=0.0.0.0
       - API_PORT=8000

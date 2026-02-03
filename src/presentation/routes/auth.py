@@ -10,11 +10,6 @@ from ...infrastructure.services import PlaywrightBrowserService
 router = APIRouter(prefix="/auth")
 
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
 class LoginResponse(BaseModel):
     success: bool
     message: str
@@ -22,7 +17,6 @@ class LoginResponse(BaseModel):
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
-    request: LoginRequest,
     browser: PlaywrightBrowserService = Depends(get_browser_service),
 ):
     """
@@ -34,7 +28,7 @@ async def login(
     O login aguardará até 30 segundos para conclusão.
     """
     try:
-        success = await browser.login(request.email, request.password)
+        success = await browser.login()
         
         if success:
             return LoginResponse(success=True, message="Login realizado com sucesso")

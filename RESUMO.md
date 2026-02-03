@@ -222,7 +222,7 @@ cp .env.example .env
 
 **Exemplo `.env`:**
 ```
-DJI_EMAIL=seu_email@exemplo.com
+DJI_USERNAME=seu_email@exemplo.com
 DJI_PASSWORD=sua_senha_aqui
 ```
 
@@ -344,7 +344,7 @@ Os dados binários usam protobuf com a seguinte estrutura:
 
 | Arquivo | Descrição |
 |---------|-----------|
-| `.env` | Credenciais (DJI_EMAIL, DJI_PASSWORD) |
+| `.env` | Credenciais (DJI_USERNAME, DJI_PASSWORD) |
 | `.env.example` | Template de credenciais |
 | `browser_profile/` | Sessão persistente do Playwright |
 | `requirements.txt` | Dependências Python |
