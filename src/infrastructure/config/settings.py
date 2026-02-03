@@ -29,7 +29,8 @@ class Settings:
     # API settings
     api_host: str = os.getenv("API_HOST", "0.0.0.0")
     api_port: int = int(os.getenv("API_PORT", "8000"))
-    api_prefix: str = os.getenv("API_PREFIX", "/api/v1")
+    api_prefix: str = os.getenv("API_PREFIX", "/api")
+    api_key: str = os.getenv("API_KEY", "")
     
     # Downloads
     downloads_dir: str = os.getenv("DOWNLOADS_DIR", str(BASE_DIR / "downloads"))

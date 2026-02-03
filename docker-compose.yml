@@ -1,5 +1,5 @@
 # ==============================================================
-# DJI AG API - Docker Compose
+# DJI AG API - Docker Compose (Produção)
 # ==============================================================
 version: '3.8'
 
@@ -12,27 +12,34 @@ services:
     environment:
       - DJI_USERNAME=${DJI_USERNAME}
       - DJI_PASSWORD=${DJI_PASSWORD}
+      - API_KEY=${API_KEY}
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - BROWSER_HEADLESS=true
+      - BROWSER_PROFILE_DIR=/app/browser_profile
+      - DOWNLOADS_DIR=/app/downloads
     volumes:
-      # Persistir sessão do browser
-      - ./browser_profile:/app/browser_profile
+      # Persistir sessão do browser (evita relogin)
+      - djiag-browser:/app/browser_profile
       # Persistir downloads
-      - ./downloads:/app/downloads
+      - djiag-downloads:/app/downloads
+    # Memória compartilhada para Chromium (OBRIGATÓRIO)
+    shm_size: 2gb
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+    # Limitar recursos (ajuste conforme sua VPS)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
 
-  # Opcional: Reverse Proxy com Traefik
-  # traefik:
-  #   image: traefik:v2.10
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
+volumes:
+  djiag-browser:
+  djiag-downloads:

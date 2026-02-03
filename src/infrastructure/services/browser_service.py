@@ -109,12 +109,22 @@ class PlaywrightThread:
         # Inicializa o Playwright
         self._playwright = sync_playwright().start()
         
+        # Args para Docker/Linux (obrigatorios em container)
+        browser_args = [
+            '--disable-blink-features=AutomationControlled',
+            '--no-sandbox',                    # Obrigatorio em Docker
+            '--disable-dev-shm-usage',         # Evita crash por memoria compartilhada
+            '--disable-gpu',                   # Sem GPU no container
+            '--disable-setuid-sandbox',        # Seguranca container
+            '--disable-software-rasterizer',   # Performance
+        ]
+        
         # Lanca o browser com contexto persistente (mesma config do test_hybrid_login.py)
         self._context = self._playwright.chromium.launch_persistent_context(
             user_data_dir=self._settings.browser_profile_dir,
             headless=self._settings.browser_headless,
             slow_mo=100,
-            args=['--disable-blink-features=AutomationControlled'],
+            args=browser_args,
             ignore_default_args=['--enable-automation'],
             viewport={'width': 1280, 'height': 800}
         )

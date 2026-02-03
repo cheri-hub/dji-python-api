@@ -2,15 +2,55 @@
 Dependency Injection
 """
 from functools import lru_cache
+from fastapi import Header, HTTPException, Security
+from fastapi.security import APIKeyHeader
 
 from ..infrastructure.services import PlaywrightBrowserService
 from ..infrastructure.repositories import DjiAgRecordRepository
+from ..infrastructure.config import get_settings
 from ..application.use_cases import (
     ListRecordsUseCase,
     GetRecordUseCase,
     DownloadRecordUseCase,
     GetFlightDataUseCase,
 )
+
+
+# ============================================================
+# API Key Security
+# ============================================================
+
+api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
+
+
+async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
+    """
+    Valida o header X-API-KEY.
+    Lança HTTPException 401 se inválido.
+    """
+    settings = get_settings()
+    
+    if not settings.api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="API_KEY não configurada no servidor. Configure a variável de ambiente API_KEY."
+        )
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Header X-API-KEY é obrigatório",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    
+    if api_key != settings.api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="X-API-KEY inválida",
+            headers={"WWW-Authenticate": "ApiKey"},
+        )
+    
+    return api_key
 
 
 # Singleton para browser service

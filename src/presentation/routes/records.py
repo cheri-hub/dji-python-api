@@ -10,6 +10,7 @@ from ..dependencies import (
     get_record_use_case,
     get_download_record_use_case,
     get_flight_data_use_case,
+    verify_api_key,
 )
 from ...application.use_cases import (
     ListRecordsUseCase,
@@ -22,7 +23,7 @@ from ...application.use_cases import (
     GetFlightDataInput,
 )
 
-router = APIRouter(prefix="/records")
+router = APIRouter(prefix="/records", dependencies=[Depends(verify_api_key)])
 
 
 # ============================================================
@@ -190,9 +191,10 @@ async def get_geojson(
     use_case: GetFlightDataUseCase = Depends(get_flight_data_use_case),
 ):
     """
-    Retorna dados de voo em formato GeoJSON.
+    Retorna dados de voo em formato GeoJSON (resumido).
     
-    Inclui LineString da rota e pontos individuais com telemetria.
+    **Aviso**: Para GeoJSON completo, use `/geojson/download` que retorna arquivo.
+    Este endpoint pode travar o Swagger com muitos pontos.
     """
     result = await use_case.execute(GetFlightDataInput(
         record_id=record_id,
@@ -206,25 +208,37 @@ async def get_geojson(
     return result.geojson
 
 
-@router.post("/{record_id}/download", response_model=DownloadResponse)
-async def download_record(
+@router.get("/{record_id}/geojson/download")
+async def download_geojson(
     record_id: str,
-    use_case: DownloadRecordUseCase = Depends(get_download_record_use_case),
+    use_case: GetFlightDataUseCase = Depends(get_flight_data_use_case),
 ):
     """
-    Faz download completo de um record.
+    Baixa dados de voo como arquivo GeoJSON.
     
-    Baixa metadados e dados de voo, salvando localmente.
+    Retorna arquivo `.geojson` completo com:
+    - LineString da rota completa
+    - Pontos individuais com telemetria (altitude, velocidade, heading, etc)
+    
+    **Recomendado** para GeoJSON grandes que travam o Swagger.
     """
-    result = await use_case.execute(DownloadRecordInput(record_id=record_id))
+    import json
+    from fastapi.responses import Response
     
-    if not result:
-        raise HTTPException(status_code=404, detail=f"Record {record_id} not found")
+    result = await use_case.execute(GetFlightDataInput(
+        record_id=record_id,
+        include_points=True,
+        format="geojson",
+    ))
     
-    return DownloadResponse(
-        record_id=result.record_id,
-        success=result.success,
-        message=result.message,
-        total_points=result.total_points,
-        metadata=result.metadata,
+    if not result or not result.geojson:
+        raise HTTPException(status_code=404, detail=f"GeoJSON for {record_id} not found")
+    
+    geojson_str = json.dumps(result.geojson, ensure_ascii=False)
+    return Response(
+        content=geojson_str,
+        media_type="application/geo+json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{record_id}.geojson"'
+        }
     )

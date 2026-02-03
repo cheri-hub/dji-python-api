@@ -4,10 +4,10 @@ Auth Routes - Login
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from ..dependencies import get_browser_service
+from ..dependencies import get_browser_service, verify_api_key
 from ...infrastructure.services import PlaywrightBrowserService
 
-router = APIRouter(prefix="/auth")
+router = APIRouter(prefix="/auth", dependencies=[Depends(verify_api_key)])
 
 
 class LoginResponse(BaseModel):
