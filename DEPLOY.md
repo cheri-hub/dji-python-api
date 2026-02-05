@@ -11,7 +11,7 @@
 
 ## Deploy Rápido
 
-### 1. Instalar Docker
+### 1. Instalar Docker (se ainda não tiver)
 
 ```bash
 # Atualizar sistema
@@ -20,55 +20,71 @@ sudo apt update && sudo apt upgrade -y
 # Instalar Docker
 curl -fsSL https://get.docker.com | sh
 
-# Adicionar usuário ao grupo docker
-sudo usermod -aG docker $USER
-
 # Instalar Docker Compose
 sudo apt install docker-compose-plugin -y
-
-# Relogar para aplicar grupo
-exit
 ```
 
-### 2. Clonar Repositório
+### 2. Criar Pasta do Projeto
 
 ```bash
-git clone <seu-repositorio> djiag-api
-cd djiag-api
+mkdir -p /opt/djiag-api
+cd /opt/djiag-api
 ```
 
-### 3. Configurar Variáveis de Ambiente
+### 3. Criar docker-compose.yml
 
 ```bash
-# Copiar exemplo
-cp .env.example .env
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
 
-# Gerar API_KEY segura
+services:
+  api:
+    image: ghcr.io/cheri-hub/dji-python-api:latest
+    container_name: djiag-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DJI_USERNAME=${DJI_USERNAME}
+      - DJI_PASSWORD=${DJI_PASSWORD}
+      - API_KEY=${API_KEY}
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - BROWSER_HEADLESS=true
+    volumes:
+      - djiag-browser:/app/browser_profile
+      - djiag-downloads:/app/downloads
+    shm_size: 2gb
+    restart: unless-stopped
+
+volumes:
+  djiag-browser:
+  djiag-downloads:
+EOF
+```
+
+### 4. Criar arquivo .env
+
+```bash
+cat > .env << EOF
+DJI_USERNAME=seu_email@dji.com
+DJI_PASSWORD=sua_senha
 API_KEY=$(openssl rand -hex 32)
-echo "API_KEY=$API_KEY" >> .env
+EOF
 
-# Editar credenciais DJI
+# Editar com suas credenciais reais
 nano .env
 ```
 
-**Variáveis obrigatórias:**
-```env
-DJI_USERNAME=seu_email@dji.com
-DJI_PASSWORD=sua_senha
-API_KEY=sua_chave_gerada_com_openssl
-```
-
-### 4. Iniciar API
+### 5. Iniciar API
 
 ```bash
-# Produção
-docker compose up -d --build
+docker compose up -d
 
 # Ver logs
 docker compose logs -f
 ```
 
-### 5. Verificar Status
+### 6. Verificar Status
 
 ```bash
 # Health check (não requer X-API-KEY)
@@ -81,6 +97,13 @@ curl -H "X-API-KEY: sua_api_key" http://localhost:8000/api/auth/status
 docker compose ps
 ```
 
+**Estrutura final:**
+```
+/opt/djiag-api/
+├── docker-compose.yml
+└── .env
+```
+
 ## Comandos Úteis
 
 ```bash
@@ -91,13 +114,14 @@ docker compose down
 docker compose restart
 
 # Ver logs em tempo real
-docker compose logs -f api
+docker compose logs -f
 
 # Acessar container
 docker compose exec api bash
 
-# Rebuild após mudanças
-docker compose up -d --build
+# Atualizar para nova versão
+docker compose pull
+docker compose up -d
 ```
 
 ## Configurar Nginx (Opcional - HTTPS)
@@ -203,7 +227,7 @@ docker compose exec api python -c "from playwright.sync_api import sync_playwrig
 ```bash
 docker compose down -v
 docker system prune -af
-docker compose up -d --build
+docker compose up -d
 ```
 
 ## Backup
