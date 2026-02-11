@@ -33,7 +33,121 @@ O DJI AG usa **WebAssembly** para gerar assinaturas de requisição, impossibili
 - **Pydantic** - Validação de dados
 - **Uvicorn** - Servidor ASGI
 
-## 📦 Instalação Local
+## � Como Funciona Tecnicamente
+
+### Por que usar automação de browser?
+
+O DJI AG SmartFarm usa **WebAssembly (WASM)** para gerar assinaturas criptográficas nas requisições. Cada chamada à API do DJI requer um `x-signature` gerado dinamicamente pelo código WASM rodando no browser. Isso torna impossível fazer requisições HTTP diretas, pois:
+
+1. O algoritmo de assinatura está ofuscado dentro do binário WASM
+2. A assinatura depende de estado interno do browser (cookies, timestamps, etc.)
+3. Tentativas de engenharia reversa violariam termos de uso
+
+**Solução:** Usar Playwright para automatizar um browser real que executa o WASM normalmente.
+
+### Fluxo de Autenticação
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  API REST   │────▶│  Playwright      │────▶│  DJI SmartFarm  │
+│  (FastAPI)  │     │  (Chromium)      │     │  (WASM + Auth)  │
+└─────────────┘     └──────────────────┘     └─────────────────┘
+       │                    │                        │
+       │  POST /auth/login  │                        │
+       │───────────────────▶│   Navega para          │
+       │                    │   djiag.com/records    │
+       │                    │───────────────────────▶│
+       │                    │                        │
+       │                    │   Redirect p/ login    │
+       │                    │◀───────────────────────│
+       │                    │                        │
+       │                    │   Preenche email/senha │
+       │                    │───────────────────────▶│
+       │                    │                        │
+       │                    │   Cookies de sessão    │
+       │                    │◀───────────────────────│
+       │   { success: true }│                        │
+       │◀───────────────────│                        │
+```
+
+### Browser Profile (Sessão Persistente)
+
+O diretório `browser_profile/` armazena o **contexto persistente** do Chromium:
+
+```
+browser_profile/
+├── Default/
+│   ├── Cookies           # Cookies de sessão DJI
+│   ├── Local Storage/    # Tokens e dados locais
+│   ├── Session Storage/  # Dados de sessão
+│   ├── Login Data        # Credenciais salvas (criptografadas)
+│   └── Preferences       # Configurações do browser
+├── Local State           # Estado geral do Chromium
+└── ...
+```
+
+**Vantagens do contexto persistente:**
+- ✅ Mantém sessão entre reinicializações da API
+- ✅ Evita login repetido (cookies válidos são reutilizados)
+- ✅ Preserva configurações anti-CAPTCHA
+- ✅ Reduz suspeita de automação (browser "tem histórico")
+
+**Importante para deploy:**
+- O `browser_profile/` local (Windows/Mac) pode ser copiado para o servidor
+- Evita necessidade de resolver CAPTCHA em ambiente headless
+- Deve ser tratado como **dado sensível** (contém cookies de autenticação)
+
+### Transferência do Browser Profile para Servidor
+
+Se o servidor apresentar CAPTCHA no login (comum em IPs novos):
+
+```bash
+# 1. No Windows, compactar o profile autenticado
+Compress-Archive -Path "browser_profile\*" -DestinationPath "browser_profile.zip"
+
+# 2. Enviar para o servidor
+scp browser_profile.zip user@servidor:/opt/djiag-api/
+
+# 3. No servidor, extrair para o volume Docker
+docker compose down
+unzip browser_profile.zip -d /var/lib/docker/volumes/djiag-api_djiag-browser/_data/
+docker compose up -d
+```
+
+### Anti-Detecção de Automação
+
+O serviço inclui técnicas para evitar detecção como bot:
+
+```python
+# Remove flag de automação do navigator
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+# Argumentos do Chromium
+--disable-blink-features=AutomationControlled
+--ignore-default-args=['--enable-automation']
+```
+
+### Thread Dedicada para Playwright
+
+Playwright requer que todas as operações sejam executadas na **mesma thread** onde o browser foi inicializado. A API usa uma arquitetura especial:
+
+```
+┌─────────────────┐     ┌─────────────────────┐
+│  FastAPI        │     │  PlaywrightThread   │
+│  (async/await)  │────▶│  (thread dedicada)  │
+│                 │     │                     │
+│  - Recebe HTTP  │     │  - Controla browser │
+│  - Valida API   │     │  - Executa ações    │
+│  - Retorna JSON │     │  - Mantém contexto  │
+└─────────────────┘     └─────────────────────┘
+```
+
+Isso garante:
+- Compatibilidade com FastAPI assíncrono
+- Estabilidade do browser (sem race conditions)
+- Reutilização da mesma instância do browser
+
+## �📦 Instalação Local
 
 ### 1. Clone e configure o ambiente
 
